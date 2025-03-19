@@ -1,0 +1,19 @@
+paths:
+  input_masks_path: '/project_workspace/uic19759/bdd/bdd100k/labels/sem_seg/colormaps/val/' 
+  base_model_path: "stabilityai/stable-diffusion-xl-base-1.0"
+  controlnet_path: "/project_workspace/uic19759/diffusers_semseg_controlnet/examples/controlnet/runs/checkpoint-69322/controlnet"
+  attach_images_path: '/project_workspace/uic19759/bdd/bdd100k/images/10k/train/' #original reference images
+  infer_path: '/project_workspace/uic19759/diffusers_semseg_controlnet/examples/controlnet/infer_out_126040'
+
+mask_bg_color: [0,0,0]  # semseg mask color, on generated images this spot should be filled
+mask_ego_color: [0,0,0] # semseg mask color, on generated images this spot should be filled
+limit: 100
+guidance_scale: 3 
+prompt: "Traffic scene. Outside. Daytime. Sky. High resolution."
+
+resolution:
+  width: 1280
+  height: 720
+negative_prompt: "cartoon"
+num_generations: 2 # generate this many images for a single input mask
+attach_reference_image: True # attach the reference image to the output grids

@@ -1,0 +1,13 @@
+accelerate>=0.16.0
+bitsandbytes
+torchvision
+transformers>=4.25.1
+ftfy
+tensorboard
+Jinja2
+datasets
+wandb
+peft
+dotenv
+prodigyopt
+git+https://github.com/huggingface/diffusers
