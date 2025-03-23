@@ -682,7 +682,7 @@ class DreamBoothDataset(Dataset):
             # See more about loading custom images at
             # https://huggingface.co/docs/datasets/v2.0.0/en/dataset_script
             dataset = load_dataset(
-                "bdd_dataset.py",
+                "ai/bdd_dataset.py",
                 cache_dir=args.cache_dir,
                 data_dir=args.train_data_dir,
                 trust_remote_code=True,

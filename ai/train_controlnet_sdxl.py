@@ -424,7 +424,7 @@ def parse_args(input_args=None):
     parser.add_argument(
         "--dataloader_num_workers",
         type=int,
-        default=0,
+        default=4,
         help=(
             "Number of subprocesses to use for data loading. 0 means that the data will be loaded in the main process."
         ),
@@ -541,7 +541,7 @@ def parse_args(input_args=None):
     parser.add_argument(
         "--proportion_empty_prompts",
         type=float,
-        default=0,
+        default=0.2,
         help="Proportion of image prompts to be replaced with empty strings. Defaults to 0 (no prompt replacement).",
     )
     parser.add_argument(
@@ -654,7 +654,7 @@ def get_train_dataset(args, accelerator):
     else:
         if args.train_data_dir is not None:
             dataset = load_dataset(
-                "bdd_dataset.py",
+                "ai/bdd_dataset.py",
                 cache_dir=args.cache_dir,
                 data_dir=args.train_data_dir,
                 trust_remote_code=True
@@ -1100,6 +1100,7 @@ def main(args):
 
     # Scheduler and math around the number of training steps.
     # Check the PR https://github.com/huggingface/diffusers/pull/8312 for detailed explanation.
+
     num_warmup_steps_for_scheduler = args.lr_warmup_steps * accelerator.num_processes
     if args.max_train_steps is None:
         len_train_dataloader_after_sharding = math.ceil(len(train_dataloader) / accelerator.num_processes)
@@ -1298,7 +1299,7 @@ def main(args):
                         accelerator.save_state(save_path)
                         logger.info(f"Saved state to {save_path}")
 
-                        image_logs = log_validation(
+                        """image_logs = log_validation(
                             vae=vae,
                             unet=unet,
                             controlnet=controlnet,
@@ -1307,6 +1308,7 @@ def main(args):
                             weight_dtype=weight_dtype,
                             step=global_step,
                         )
+                        """
 
             logs = {"loss": loss.detach().item(), "lr": lr_scheduler.get_last_lr()[0]}
             progress_bar.set_postfix(**logs)

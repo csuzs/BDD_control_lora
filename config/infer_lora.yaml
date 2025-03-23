@@ -1,0 +1,14 @@
+paths:
+  base_model_path: "stabilityai/stable-diffusion-xl-base-1.0"
+  lora_weights_path: "$repo_root/lora_runs/checkpoint-15000"
+  images_path: '$bdd_dataset_path/bdd/bdd100k/images/10k/test/' #original reference images
+  infer_path: '$repo_root/lora_infer'
+
+limit: 100
+prompt: "Traffic scene. Daytime. Sky. High resolution. Pedestrians walking before the car."
+
+resolution:
+  width: 1280
+  height: 720
+negative_prompt: "cartoon"
+num_generations: 100 # generate this many images for a single input mask

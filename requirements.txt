@@ -11,3 +11,4 @@ peft
 dotenv
 prodigyopt
 git+https://github.com/huggingface/diffusers
+xformers
