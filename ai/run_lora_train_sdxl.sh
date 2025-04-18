@@ -6,25 +6,28 @@ export OUTPUT_DIR="lora_train_runs"
 accelerate launch \
  --config_file=config/accelerate_config_a100_single.yaml \
  --multi_gpu \
- ai/train_text_to_image_lora_example.py \
+ ai/train_text_to_image_lora.py \
  --pretrained_model_name_or_path=$MODEL_DIR \
  --output_dir=$OUTPUT_DIR \
  --cache_dir=$HF_HOME \
- --train_data_dir="datasets" \
+ --train_data_dir="data" \
+ --dataset_name="bdd" \
  --image_column="image" \
  --caption_column="caption" \
  --max_train_steps=126040 \
- --resolution 512 \
+ --resolution 1280 720 \
  --learning_rate=1e-5 \
  --mixed_precision="fp16" \
- --train_batch_size=42 \
+ --train_batch_size=1 \
+ --optimizer="prodigy" \
  --gradient_accumulation_steps=1 \
  --gradient_checkpointing \
  --use_8bit_adam \
- --checkpointing_steps=1000 \
+ --checkpointing_steps=2500 \
+ --resume_from_checkpoint='latest' \
  --report_to='wandb' \
- --rank=256 \
+ --pretrained_vae_model_name_or_path='madebyollin/sdxl-vae-fp16-fix' \
+ --rank=64 \
+ --alpha=64 \
  --validation_prompt='Traffic scene. Outside. Daytime. Sky. High resolution.' \
- --num_validation_images 10 \
- #--resume_from_checkpoint=None \
- 
+ --num_validation_images 10 

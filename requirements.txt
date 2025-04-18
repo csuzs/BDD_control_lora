@@ -12,3 +12,4 @@ dotenv
 prodigyopt
 git+https://github.com/huggingface/diffusers
 xformers
+scikit-learn
