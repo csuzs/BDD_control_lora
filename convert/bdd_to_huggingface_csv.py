@@ -38,13 +38,12 @@ def bdd_to_hf_csv(image_folder: Path, condition_folder: Path, caption_folder: Pa
         if condition_path.exists():
             images_paths.append(image_path)
             conditions_paths.append(condition_path)
-            
             if caption_path.exists():
                 with open(caption_path, 'r') as caption_file:
                     caption = caption_file.read()
                     captions.append(caption)        
             else:
-                captions.append("Traffic scene.")
+                captions.append("High resolution, 4k Traffic scene.")
         else:
             print(f"Missing files for {file_stem}, skipping.")
     
@@ -81,4 +80,4 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    bdd_to_hf_csv(image_folder=Path(args.images_path),condition_folder=Path(args.conditions_path),caption_folder=Path(args.conditions_path),output_folder=Path(args.output_folder))
+    bdd_to_hf_csv(image_folder=Path(args.images_path),condition_folder=Path(args.conditions_path),caption_folder=Path(args.captions_path),output_folder=Path(args.output_folder))

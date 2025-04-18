@@ -17,16 +17,17 @@ accelerate launch \
  --learning_rate=7e-6 \
  --mixed_precision="fp16" \
  --tracker_project_name="controlnet_semseg" \
- --train_batch_size=32 \
- --resume_from_checkpoint="latest" \
+ --train_batch_size=96 \
  --gradient_accumulation_steps=1 \
  --gradient_checkpointing \
  --use_8bit_adam \
- --checkpointing_steps=6301 \
+ --checkpointing_steps=100 \
+ --validation_steps=100 \
  --report_to='wandb' \
  --num_train_epochs=80 \
  --proportion_empty_prompts 0.2 \
- --validation_image "$BDD_ROOT_DIR/bdd100k/images/10k/val/7d06fefd-f7be05a6.jpg" \
- --validation_prompt "Traffic scene. Daytime. City street. High resolution." \
+ --validation_image "$BDD_ROOT_DIR/bdd100k/labels/sem_seg/colormaps/train/07797fc1-3f6aee10.png" \
+ --validation_prompt "High resolution, 4k Traffic scene. Daytime. City street." \
+ #--resume_from_checkpoint="latest" \
  #--pretrained_vae_model_name_or_path='madebyollin/sdxl-vae-fp16-fix' \
  #--max_train_steps=126040 \
