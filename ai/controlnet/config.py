@@ -1,0 +1,57 @@
+from dataclasses import dataclass
+from typing import Optional, List
+
+@dataclass
+class Config:
+    pretrained_model_name_or_path: Optional[str] = None
+    controlnet_model_name_or_path: Optional[str] = None
+    revision: Optional[str] = None
+    variant: Optional[str] = None
+    tokenizer_name: Optional[str] = None
+    output_dir: str = "controlnet-model"
+    cache_dir: Optional[str] = None
+    seed: Optional[int] = None
+    resolution: int = 512
+    train_batch_size: int = 4
+    num_train_epochs: int = 1
+    max_train_steps: Optional[int] = None
+    checkpointing_steps: int = 500
+    checkpoints_total_limit: Optional[int] = None
+    resume_from_checkpoint: Optional[str] = None
+    gradient_accumulation_steps: int = 1
+    gradient_checkpointing: bool = False
+    learning_rate: float = 5e-6
+    scale_lr: bool = False
+    lr_scheduler: str = "constant"
+    lr_warmup_steps: int = 500
+    lr_num_cycles: int = 1
+    lr_power: float = 1.0
+    use_8bit_adam: bool = False
+    dataloader_num_workers: int = 0
+    adam_beta1: float = 0.9
+    adam_beta2: float = 0.999
+    adam_weight_decay: float = 1e-2
+    adam_epsilon: float = 1e-08
+    max_grad_norm: float = 1.0
+    push_to_hub: bool = False
+    hub_token: Optional[str] = None
+    hub_model_id: Optional[str] = None
+    logging_dir: str = "logs"
+    allow_tf32: bool = False
+    report_to: str = "tensorboard"
+    mixed_precision: Optional[str] = None
+    enable_xformers_memory_efficient_attention: bool = False
+    set_grads_to_none: bool = False
+    dataset_name: Optional[str] = None
+    dataset_config_name: Optional[str] = None
+    train_data_dir: Optional[str] = None
+    image_column: str = "image"
+    conditioning_image_column: str = "conditioning_image"
+    caption_column: str = "text"
+    max_train_samples: Optional[int] = None
+    proportion_empty_prompts: float = 0.0
+    validation_prompt: Optional[List[str]] = None
+    validation_image: Optional[List[str]] = None
+    num_validation_images: int = 4
+    validation_steps: int = 100
+    tracker_project_name: str = "train_controlnet"

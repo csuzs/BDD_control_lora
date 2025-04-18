@@ -23,7 +23,8 @@ import random
 import shutil
 from contextlib import nullcontext
 from pathlib import Path
-
+import hydra
+from omegaconf import DictConfig, OmegaConf
 import accelerate
 import numpy as np
 import torch
@@ -263,7 +264,7 @@ These are controlnet weights trained on {base_model} with new type of conditioni
 
     model_card.save(os.path.join(repo_folder, "README.md"))
 
-
+@hydra.main(version_base=None, config_path="config/controlnet_train.yaml", config_name="config")
 def parse_args(input_args=None):
     parser = argparse.ArgumentParser(description="Simple example of a ControlNet training script.")
     parser.add_argument(
