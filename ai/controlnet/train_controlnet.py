@@ -15,6 +15,7 @@
 
 import argparse
 import contextlib
+from functools import partial
 import gc
 import logging
 import math
@@ -39,7 +40,7 @@ from PIL import Image
 from torchvision import transforms
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer, PretrainedConfig
-
+from ai.controlnet.colormaps import CONTROLNET_COLOR_MAP,ORIGINAL_BDD_COLORMAP
 import diffusers
 from diffusers import (
     AutoencoderKL,
@@ -126,22 +127,41 @@ def log_validation(
 
     image_logs = []
     inference_ctx = contextlib.nullcontext() if is_final_validation else torch.autocast("cuda")
-
-    for validation_prompt, validation_image in zip(validation_prompts, validation_images):
-        validation_image = Image.open(validation_image).convert("RGB")
-
+    
+    
+    def permute(x):
+        x = x.permute(0,3,1,2)
+        return x
+    conditioning_image_transforms = transforms.Compose(
+        [
+            transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.CenterCrop(args.resolution),
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.long()),
+            partial(torch.nn.functional.one_hot, num_classes=19),
+            permute,
+            transforms.Lambda(lambda x: x.to(torch.float32)),
+        ]
+    )
+    for validation_prompt, validation_condition_image_path in zip(validation_prompts, validation_images):
+        validation_condition_image = Image.open(validation_condition_image_path).convert("L")
+        validation_condition_image = conditioning_image_transforms(validation_condition_image)
+        
+        validation_cond_image_colormap_path = validation_condition_image_path.replace("classmaps","colormaps")
+        validation_colormap_img = Image.open(validation_cond_image_colormap_path).convert("RGB")
+        
         images = []
 
         for _ in range(args.num_validation_images):
             with inference_ctx:
                 image = pipeline(
-                    validation_prompt, image=validation_image, num_inference_steps=20, generator=generator
+                    validation_prompt, image=validation_condition_image, num_inference_steps=20, generator=generator
                 ).images[0]
 
             images.append(image)
 
         image_logs.append(
-            {"validation_image": validation_image, "images": images, "validation_prompt": validation_prompt}
+            {"validation_image": validation_colormap_img, "images": images, "validation_prompt": validation_prompt}
         )
 
     tracker_key = "test" if is_final_validation else "validation"
@@ -204,7 +224,7 @@ def get_train_dataset(args, accelerator):
     else:
         if args.train_data_dir is not None:
             dataset = load_dataset(
-                "ai/bdd_dataset.py",
+                "ai/bdd_controlnet_dataset.py",
                 cache_dir=args.cache_dir,
                 data_dir=args.train_data_dir,
                 trust_remote_code=True
@@ -769,6 +789,7 @@ def make_train_dataset(args, tokenizer, accelerator):
             captions, max_length=tokenizer.model_max_length, padding="max_length", truncation=True, return_tensors="pt"
         )
         return inputs.input_ids
+    
 
     image_transforms = transforms.Compose(
         [
@@ -784,6 +805,12 @@ def make_train_dataset(args, tokenizer, accelerator):
             transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR),
             transforms.CenterCrop(args.resolution),
             transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.long()),
+            partial(torch.nn.functional.one_hot, num_classes=19),
+            transforms.Lambda(lambda x: x.squeeze()),
+            transforms.Lambda(lambda x: x.permute(2,0,1)),
+            transforms.Lambda(lambda x: x.to(torch.uint32)),
+            
         ]
     )
 
@@ -791,9 +818,8 @@ def make_train_dataset(args, tokenizer, accelerator):
         images = [image.convert("RGB") for image in examples[image_column]]
         images = [image_transforms(image) for image in images]
 
-        conditioning_images = [image.convert("RGB") for image in examples[conditioning_image_column]]
-        conditioning_images = [conditioning_image_transforms(image) for image in conditioning_images]
-
+        #conditioning_images = [image.convert("RGB") for image in examples[conditioning_image_column]]
+        conditioning_images = [conditioning_image_transforms(image) for image in examples[conditioning_image_column]]
         examples["pixel_values"] = images
         examples["conditioning_pixel_values"] = conditioning_images
         examples["input_ids"] = tokenize_captions(examples)
@@ -907,6 +933,36 @@ def main(args):
     else:
         logger.info("Initializing controlnet weights from unet")
         controlnet = ControlNetModel.from_unet(unet)
+        original_layer = controlnet.controlnet_cond_embedding.conv_in
+        out_channels = original_layer.out_channels
+        kernel_size = original_layer.kernel_size
+        stride = original_layer.stride
+        padding = original_layer.padding
+
+        # --- 3. Create New Layer ---
+        new_in_channels = len(ORIGINAL_BDD_COLORMAP) # Your desired number of input channels
+        new_conv_in = torch.nn.Conv2d(
+            new_in_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+        )
+
+        # Initialize weights similar to the original? (Optional, often Kaiming/Xavier is fine)
+        # new_conv_in.weight.data.normal_(mean=0.0, std=0.02) # Example initialization
+        # if new_conv_in.bias is not None:
+        #     new_conv_in.bias.data.zero_()
+        print(f"New conv_in layer created: {new_conv_in}")
+
+        # --- 4. Replace the Layer ---
+        controlnet.controlnet_cond_embedding.conv_in = new_conv_in
+        # Verify the change
+        print(f"Updated controlnet.controlnet_cond_embedding.conv_in: {controlnet.controlnet_cond_embedding.conv_in}")
+        # Also update the config if you plan to save/reload the model config itself
+        controlnet.config.controlnet_conditioning_channel_order = "rgb" # This might be misleading now, but diffusers expects it
+        # Manually add the info or handle it externally
+        controlnet.config.in_channels = new_in_channels # Store it in the config for 
 
     # Taken from [Sayak Paul's Diffusers PR #6511](https://github.com/huggingface/diffusers/pull/6511/files)
     def unwrap_model(model):
@@ -1085,12 +1141,12 @@ def main(args):
     logger.info(f"  Total optimization steps = {args.max_train_steps}")
     global_step = 0
     first_epoch = 0
-
     # Potentially load in the weights and states from a previous save
     if args.resume_from_checkpoint:
         if args.resume_from_checkpoint != "latest":
             path = os.path.basename(args.resume_from_checkpoint)
         else:
+            
             # Get the most recent checkpoint
             dirs = os.listdir(args.output_dir)
             dirs = [d for d in dirs if d.startswith("checkpoint")]
@@ -1120,7 +1176,6 @@ def main(args):
         # Only show the progress bar once on each machine.
         disable=not accelerator.is_local_main_process,
     )
-
     image_logs = None
     for epoch in range(first_epoch, args.num_train_epochs):
         for step, batch in enumerate(train_dataloader):

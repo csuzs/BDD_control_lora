@@ -1,33 +1,34 @@
 source .env
 
-export OUTPUT_DIR="controlnet_sd15_runs_80epoch"
+export OUTPUT_DIR="controlnet_sd15_full_captions"
 
 accelerate launch \
- --multi_gpu \
+ --main_process_port=29502 \
  --config_file=config/accelerate_config_a100_single.yaml \
- ai/train_controlnet.py \
+ ai/controlnet/train_controlnet.py \
  --pretrained_model_name_or_path=$MODEL_DIR \
  --output_dir=$OUTPUT_DIR \
  --cache_dir=$HF_HOME \
- --train_data_dir='datasets' \
+ --train_data_dir='datasets/controlnet_full' \
  --image_column "image" \
  --conditioning_image_column "condition" \
  --caption_column "caption" \
  --resolution 512 \
- --learning_rate=7e-6 \
+ --learning_rate=1e-5 \
  --mixed_precision="fp16" \
  --tracker_project_name="controlnet_semseg" \
- --train_batch_size=96 \
+ --train_batch_size=64 \
  --gradient_accumulation_steps=1 \
  --gradient_checkpointing \
  --use_8bit_adam \
- --checkpointing_steps=100 \
- --validation_steps=100 \
+ --checkpointing_steps=200 \
+ --validation_steps=200 \
  --report_to='wandb' \
- --num_train_epochs=80 \
+ --num_train_epochs=160 \
  --proportion_empty_prompts 0.2 \
- --validation_image "$BDD_ROOT_DIR/bdd100k/labels/sem_seg/colormaps/train/07797fc1-3f6aee10.png" \
- --validation_prompt "High resolution, 4k Traffic scene. Daytime. City street." \
- #--resume_from_checkpoint="latest" \
- #--pretrained_vae_model_name_or_path='madebyollin/sdxl-vae-fp16-fix' \
+ --validation_image "/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-workspace/uic19759/bdd/bdd100k/labels/sem_seg/classmaps/val/a91b7555-00000780.png" \
+ --validation_prompt "High resolution, 4k Traffic scene." \
+ --lr_scheduler="cosine" \
+ --resume_from_checkpoint="latest"
+
  #--max_train_steps=126040 \
