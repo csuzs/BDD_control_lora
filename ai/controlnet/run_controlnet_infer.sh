@@ -1,7 +1,6 @@
 source .env
 
-export OUTPUT_DIR="lora_controlnet_infer_out"
 
 python \
- ai/infer_sdxl.py \
- --infer_config config/infer.yaml
+ ai/controlnet/infer_controlnet_sdxl.py \
+ --infer_config config/controlnet_infer.yaml

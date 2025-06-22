@@ -144,13 +144,22 @@ def log_validation(
             transforms.Lambda(lambda x: x.to(torch.float32)),
         ]
     )
+    
+    image_transforms = transforms.Compose(
+        [
+            transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.CenterCrop(args.resolution),
+            transforms.ToTensor(),
+        ]
+    )
+    
     for validation_prompt, validation_condition_image_path in zip(validation_prompts, validation_images):
         validation_condition_image = Image.open(validation_condition_image_path).convert("L")
         validation_condition_image = conditioning_image_transforms(validation_condition_image)
         
         validation_cond_image_colormap_path = validation_condition_image_path.replace("classmaps","colormaps")
         validation_colormap_img = Image.open(validation_cond_image_colormap_path).convert("RGB")
-        
+        validation_colormap_img = image_transforms(validation_colormap_img)
         images = []
 
         for _ in range(args.num_validation_images):
@@ -303,7 +312,6 @@ def make_train_dataset(args, tokenizer, accelerator):
     # Preprocessing the datasets.
     # We need to tokenize inputs and targets.
     column_names = ["image","caption","condition"]
-    
 
     # 6. Get the column names for input/target.
     #dataset_columns = {"image","caption"}
@@ -804,6 +812,8 @@ def main(args: DictConfig):
 
                         save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
                         accelerator.save_state(save_path)
+                        #If this is not here, controlnet will not be saved properly, no config.json file will be found!
+                        controlnet.save_pretrained(save_path)
                         logger.info(f"Saved state to {save_path}")
 
                     if args.validation_prompt is not None and global_step % args.validation_steps == 0:

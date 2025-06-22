@@ -74,54 +74,6 @@ logger = get_logger(__name__)
 if is_torch_npu_available():
     torch.npu.config.allow_internal_format = False
 
-
-def save_model_card(
-    repo_id: str,
-    images: list = None,
-    base_model: str = None,
-    dataset_name: str = None,
-    train_text_encoder: bool = False,
-    repo_folder: str = None,
-    vae_path: str = None,
-):
-    img_str = ""
-    if images is not None:
-        for i, image in enumerate(images):
-            image.save(os.path.join(repo_folder, f"image_{i}.png"))
-            img_str += f"![img_{i}](./image_{i}.png)\n"
-
-    model_description = f"""
-# LoRA text2image fine-tuning - {repo_id}
-
-These are LoRA adaption weights for {base_model}. The weights were fine-tuned on the {dataset_name} dataset. You can find some example images in the following. \n
-{img_str}
-
-LoRA for the text encoder was enabled: {train_text_encoder}.
-
-Special VAE used for training: {vae_path}.
-"""
-    model_card = load_or_create_model_card(
-        repo_id_or_path=repo_id,
-        from_training=True,
-        license="creativeml-openrail-m",
-        base_model=base_model,
-        model_description=model_description,
-        inference=True,
-    )
-
-    tags = [
-        "stable-diffusion-xl",
-        "stable-diffusion-xl-diffusers",
-        "text-to-image",
-        "diffusers",
-        "diffusers-training",
-        "lora",
-    ]
-    model_card = populate_model_card(model_card, tags=tags)
-
-    model_card.save(os.path.join(repo_folder, "README.md"))
-
-
 def log_validation(
     pipeline,
     args,
@@ -145,7 +97,7 @@ def log_validation(
         autocast_ctx = torch.autocast(accelerator.device.type)
 
     with autocast_ctx:
-        images = [pipeline(**pipeline_args, generator=generator).images[0] for _ in range(args.num_validation_images)]
+        images = [pipeline(**pipeline_args, generator=generator,width=1280, height=720).images[0] for _ in range(args.num_validation_images)]
 
     for tracker in accelerator.trackers:
         phase_name = "test" if is_final_validation else "validation"
@@ -291,8 +243,9 @@ def parse_args(input_args=None):
     parser.add_argument("--seed", type=int, default=None, help="A seed for reproducible training.")
     parser.add_argument(
         "--resolution",
+        nargs="+",
         type=int,
-        default=1024,
+        default=[1280,720],
         help=(
             "The resolution for input images, all the images in the train/validation dataset will be resized to this"
             " resolution"
@@ -723,7 +676,6 @@ def main(args):
             unet_lora_layers_to_save = None
             text_encoder_one_lora_layers_to_save = None
             text_encoder_two_lora_layers_to_save = None
-
             for model in models:
                 if isinstance(unwrap_model(model), type(unwrap_model(unet))):
                     unet_lora_layers_to_save = convert_state_dict_to_diffusers(get_peft_model_state_dict(model))
@@ -753,7 +705,6 @@ def main(args):
         unet_ = None
         text_encoder_one_ = None
         text_encoder_two_ = None
-
         while len(models) > 0:
             model = models.pop()
 
@@ -765,8 +716,16 @@ def main(args):
                 text_encoder_two_ = model
             else:
                 raise ValueError(f"unexpected save model: {model.__class__}")
-
         lora_state_dict, _ = StableDiffusionLoraLoaderMixin.lora_state_dict(input_dir)
+        
+        if unet_ is None:
+            unet_ = unet
+        if text_encoder_one_ is None and args.train_text_encoder:
+            text_encoder_one_ = text_encoder_one
+        if text_encoder_two_ is None and args.train_text_encoder:
+            text_encoder_two_ = text_encoder_two
+        
+        
         unet_state_dict = {f'{k.replace("unet.", "")}': v for k, v in lora_state_dict.items() if k.startswith("unet.")}
         unet_state_dict = convert_unet_state_dict_to_peft(unet_state_dict)
         incompatible_keys = set_peft_model_state_dict(unet_, unet_state_dict, adapter_name="default")
@@ -914,7 +873,7 @@ def main(args):
         return tokens_one, tokens_two
 
     # Preprocessing the datasets.
-    train_resize = transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR)
+    train_resize = transforms.Resize([args.resolution[1],args.resolution[0]], interpolation=transforms.InterpolationMode.BILINEAR)
     train_crop = transforms.CenterCrop(args.resolution) if args.center_crop else transforms.RandomCrop(args.resolution)
     train_flip = transforms.RandomHorizontalFlip(p=1.0)
     train_transforms = transforms.Compose(
@@ -937,15 +896,16 @@ def main(args):
                 # flip
                 image = train_flip(image)
             if args.center_crop:
-                y1 = max(0, int(round((image.height - args.resolution) / 2.0)))
-                x1 = max(0, int(round((image.width - args.resolution) / 2.0)))
+                y1 = max(0, int(round((image.height - args.resolution[0]) / 2.0)))
+                x1 = max(0, int(round((image.width - args.resolution[1]) / 2.0)))
                 image = train_crop(image)
             else:
-                y1, x1, h, w = train_crop.get_params(image, (args.resolution, args.resolution))
+                y1, x1, h, w = train_crop.get_params(image, (args.resolution[1], args.resolution[0]))
                 image = crop(image, y1, x1, h, w)
             crop_top_left = (y1, x1)
             crop_top_lefts.append(crop_top_left)
             image = train_transforms(image)
+            
             all_images.append(image)
 
         examples["original_sizes"] = original_sizes
@@ -1018,7 +978,7 @@ def main(args):
         unet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
             unet, optimizer, train_dataloader, lr_scheduler
         )
-
+    
     # We need to recalculate our total training steps as the size of the training dataloader may have changed.
     num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
     if overrode_max_train_steps:
@@ -1064,6 +1024,7 @@ def main(args):
         else:
             accelerator.print(f"Resuming from checkpoint {path}")
             accelerator.load_state(os.path.join(args.output_dir, path))
+            
             global_step = int(path.split("-")[1])
 
             initial_global_step = global_step
@@ -1121,7 +1082,7 @@ def main(args):
                 # time ids
                 def compute_time_ids(original_size, crops_coords_top_left):
                     # Adapted from pipeline.StableDiffusionXLPipeline._get_add_time_ids
-                    target_size = (args.resolution, args.resolution)
+                    target_size = (args.resolution[1], args.resolution[0])
                     add_time_ids = list(original_size + crops_coords_top_left + target_size)
                     add_time_ids = torch.tensor([add_time_ids])
                     add_time_ids = add_time_ids.to(accelerator.device, dtype=weight_dtype)
@@ -1224,6 +1185,7 @@ def main(args):
                                     shutil.rmtree(removing_checkpoint)
 
                         save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
+                        
                         accelerator.save_state(save_path)
                         logger.info(f"Saved state to {save_path}")
 
@@ -1267,8 +1229,7 @@ def main(args):
         else:
             text_encoder_lora_layers = None
             text_encoder_2_lora_layers = None
-
-        StableDiffusionXLPipeline.save_lora_weights(
+            StableDiffusionXLPipeline.save_lora_weights(
             save_directory=args.output_dir,
             unet_lora_layers=unet_lora_state_dict,
             text_encoder_lora_layers=text_encoder_lora_layers,
@@ -1301,23 +1262,6 @@ def main(args):
         # run inference
         if args.validation_prompt and args.num_validation_images > 0:
             images = log_validation(pipeline, args, accelerator, epoch, is_final_validation=True)
-
-        if args.push_to_hub:
-            save_model_card(
-                repo_id,
-                images=images,
-                base_model=args.pretrained_model_name_or_path,
-                dataset_name=args.dataset_name,
-                train_text_encoder=args.train_text_encoder,
-                repo_folder=args.output_dir,
-                vae_path=args.pretrained_vae_model_name_or_path,
-            )
-            upload_folder(
-                repo_id=repo_id,
-                folder_path=args.output_dir,
-                commit_message="End of training",
-                ignore_patterns=["step_*", "epoch_*"],
-            )
 
     accelerator.end_training()
 

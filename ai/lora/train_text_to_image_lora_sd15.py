@@ -139,7 +139,7 @@ def log_validation(
                     phase_name: [
                         wandb.Image(image, caption=f"{i}: {args.validation_prompt}") for i, image in enumerate(images)
                     ]
-                }
+                }   
             )
     return images
 
@@ -160,7 +160,7 @@ def get_bdd_train_dataset(args, accelerator):
     else:
         if args.train_data_dir is not None:
             dataset = load_dataset(
-                "ai/bdd_dataset.py",
+                "ai/bdd_lora_dataset.py",
                 cache_dir=args.cache_dir,
                 data_dir=args.train_data_dir,
                 trust_remote_code=True
@@ -572,7 +572,7 @@ def main():
 
     unet_lora_config = LoraConfig(
         r=args.rank,
-        lora_alpha=args.rank,
+        lora_alpha=args.rank / 2,
         init_lora_weights="gaussian",
         target_modules=["to_k", "to_q", "to_v", "to_out.0"],
     )
@@ -805,7 +805,7 @@ def main():
         # Only show the progress bar once on each machine.
         disable=not accelerator.is_local_main_process,
     )
-
+    
     for epoch in range(first_epoch, args.num_train_epochs):
         unet.train()
         train_loss = 0.0
@@ -964,7 +964,7 @@ def main():
         # Final inference
         # Load previous pipeline
         if args.validation_prompt is not None:
-            pipeline = DiffusionPipeline.from_pretrained(
+            pipeline = StableDiffusionPipeline.from_pretrained(
                 args.pretrained_model_name_or_path,
                 revision=args.revision,
                 variant=args.variant,
@@ -973,24 +973,8 @@ def main():
 
             # load attention processors
             pipeline.load_lora_weights(args.output_dir)
-
             # run inference
             images = log_validation(pipeline, args, accelerator, epoch, is_final_validation=True)
-
-        if args.push_to_hub:
-            save_model_card(
-                repo_id,
-                images=images,
-                base_model=args.pretrained_model_name_or_path,
-                dataset_name=args.dataset_name,
-                repo_folder=args.output_dir,
-            )
-            upload_folder(
-                repo_id=repo_id,
-                folder_path=args.output_dir,
-                commit_message="End of training",
-                ignore_patterns=["step_*", "epoch_*"],
-            )
 
     accelerator.end_training()
 

@@ -1,14 +1,16 @@
 paths:
-  base_model_path: "stabilityai/stable-diffusion-xl-base-1.0"
-  lora_weights_path: "$repo_root/lora_runs/checkpoint-15000"
+  base_model_path: "stable-diffusion-v1-5/stable-diffusion-v1-5"
+  lora_weights_path: "lora_70ktrain_run_ped_cycle_prompt_good/checkpoint-33500"
   images_path: '$bdd_dataset_path/bdd/bdd100k/images/10k/test/' #original reference images
-  infer_path: '$repo_root/lora_infer'
+  infer_path: 'runs/lora_infer'
 
 limit: 100
-prompt: "Traffic scene. Daytime. Sky. High resolution. Pedestrians walking before the car."
-
+prompt: "High resolution, 4k Traffic scene. Train next to the road."
+guidance_scale: 7.0
+adapter_scale: 0.5
 resolution:
   width: 1280
   height: 720
-negative_prompt: "cartoon"
-num_generations: 100 # generate this many images for a single input mask
+negative_prompt: "cartoon, blurry, low quality, bad anatomy"
+num_generations: 60 # generate this many images for a single input mask
+num_images_per_prompt: 40 # generate this many images for each input mask

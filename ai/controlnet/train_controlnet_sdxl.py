@@ -104,12 +104,7 @@ def log_validation(vae, unet, controlnet, args, accelerator, weight_dtype, step,
             variant=args.variant,
             torch_dtype=weight_dtype,
         )
-        
-        if args.lora_path:
-
-            lora_state_dict,network_alphas = StableDiffusionLoraLoaderMixin.lora_state_dict(args.lora_path)
-            StableDiffusionLoraLoaderMixin.load_lora_into_unet(lora_state_dict,network_alphas,pipeline.unet)
-                
+            
     pipeline.scheduler = UniPCMultistepScheduler.from_config(pipeline.scheduler.config)
     pipeline = pipeline.to(accelerator.device)
     pipeline.set_progress_bar_config(disable=True)
@@ -145,14 +140,10 @@ def log_validation(vae, unet, controlnet, args, accelerator, weight_dtype, step,
     for validation_prompt, validation_image in zip(validation_prompts, validation_images):
         validation_image = Image.open(validation_image).convert("RGB")
         validation_image = validation_image.resize(args.resolution)
-
         images = []
-
         for _ in range(args.num_validation_images):
             with autocast_ctx:
-                image = pipeline(
-                    prompt=validation_prompt, image=validation_image, num_inference_steps=25, generator=generator
-                ).images[0]
+                image = pipeline(prompt=validation_prompt, image=validation_image, num_inference_steps=25, generator=generator).images[0]
             images.append(image)
 
         image_logs.append(
@@ -264,7 +255,6 @@ These are controlnet weights trained on {base_model} with new type of conditioni
 
     model_card.save(os.path.join(repo_folder, "README.md"))
 
-@hydra.main(version_base=None, config_path="config/controlnet_train.yaml", config_name="config")
 def parse_args(input_args=None):
     parser = argparse.ArgumentParser(description="Simple example of a ControlNet training script.")
     parser.add_argument(
@@ -497,7 +487,7 @@ def parse_args(input_args=None):
         help=(
             "The name of the Dataset (from the HuggingFace hub) to train on (could be your own, possibly private,"
             " dataset). It can also be a path pointing to a local copy of a dataset in your filesystem,"
-            " or to a folder containing files that 🤗 Datasets can understand."
+            " or to a folder containing files that 🤗 Datasets can under."
         ),
     )
     parser.add_argument(
@@ -656,7 +646,7 @@ def get_train_dataset(args, accelerator):
     else:
         if args.train_data_dir is not None:
             dataset = load_dataset(
-                "ai/bdd_dataset.py",
+                "ai/bdd_controlnet_dataset.py",
                 cache_dir=args.cache_dir,
                 data_dir=args.train_data_dir,
                 trust_remote_code=True
@@ -762,6 +752,7 @@ def prepare_train_dataset(dataset, accelerator):
             transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR),
             transforms.CenterCrop(args.resolution),
             transforms.ToTensor(),
+            transforms.Lambda(lambda x: x / 255.),
         ]
     )
 
@@ -953,7 +944,7 @@ def main(args):
     text_encoder_one.requires_grad_(False)
     text_encoder_two.requires_grad_(False)
     controlnet.train()
-
+    
     if args.enable_npu_flash_attention:
         if is_torch_npu_available():
             logger.info("npu flash attention enabled.")
@@ -1199,7 +1190,17 @@ def main(args):
         # Only show the progress bar once on each machine.
         disable=not accelerator.is_local_main_process,
     )
-
+    
+    image_logs = log_validation(
+                            vae=vae,
+                            unet=unet,
+                            controlnet=controlnet,
+                            args=args,
+                            accelerator=accelerator,
+                            weight_dtype=weight_dtype,
+                            step=global_step,
+                        )
+    
     image_logs = None
     for epoch in range(first_epoch, args.num_train_epochs):
         for step, batch in enumerate(train_dataloader):
@@ -1299,9 +1300,10 @@ def main(args):
 
                         save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
                         accelerator.save_state(save_path)
+                        controlnet.save_pretrained(save_path)
                         logger.info(f"Saved state to {save_path}")
 
-                        """image_logs = log_validation(
+                        image_logs = log_validation(
                             vae=vae,
                             unet=unet,
                             controlnet=controlnet,
@@ -1310,7 +1312,6 @@ def main(args):
                             weight_dtype=weight_dtype,
                             step=global_step,
                         )
-                        """
 
             logs = {"loss": loss.detach().item(), "lr": lr_scheduler.get_last_lr()[0]}
             progress_bar.set_postfix(**logs)

@@ -1,0 +1,82 @@
+# Base configuration mimicking your argparse defaults and structure
+
+# Paths and Model Identifiers
+pretrained_name_or_path: ??? # Required, set via CLI or defaults file
+controlnet_name_or_path: null
+revision: null
+variant: null
+tokenizer_name: null
+
+output_dir: "controlnet-model"
+logging_dir: "logs"
+cache_dir: null
+
+# Training Parameters
+seed: null
+resolution: 512
+train_batch_size: 4
+num_train_epochs: 1
+max_train_steps: null
+gradient_accumulation_steps: 1
+gradient_checkpointing: false
+allow_tf32: false
+mixed_precision: null # choices: no, fp16, bf16
+enable_xformers_memory_efficient_attention: false
+set_grads_to_none: false
+
+# Optimizer Parameters
+optimizer:
+  learning_rate: 5e-6
+  scale_lr: false
+  scheduler: "constant" # choices: linear, cosine, etc.
+  lr_warmup_steps: 500
+  lr_num_cycles: 1
+  lr_power: 1.0
+  use_8bit_adam: false
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 1e-2
+  adam_epsilon: 1e-08
+  max_grad_norm: 1.0
+
+# Dataset Parameters
+dataset:
+  name: null
+  config_name: null
+  train_data_dir: null
+  image_column: "image"
+  conditioning_image_column: "condition"
+  caption_column: "text"
+  max_train_samples: null
+  proportion_empty_prompts: 0.0
+  dataloader_num_workers: 0
+
+# Checkpointing
+checkpointing:
+  steps: 500
+  total_limit: null
+  resume_from_checkpoint: null
+
+# Validation
+validation:
+  prompt: null # Expect list
+  image: null  # Expect list
+  num_images: 4
+  steps: 100
+
+# Reporting / Hub
+reporting:
+  report_to: "tensorboard" # choices: tensorboard, wandb, comet_ml, all
+  tracker_project_name: "train_controlnet"
+  push_to_hub: false
+  hub_token: null
+  hub_model_id: null
+
+# Hydra specific settings (optional, can control run directories etc.)
+hydra:
+  run:
+    dir: ${output.dir}/outputs/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: ${output.dir}/multirun/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}
+

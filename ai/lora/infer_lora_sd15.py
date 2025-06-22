@@ -8,7 +8,7 @@ import yaml
 from PIL import ImageFont, ImageDraw, Image
 from torchvision import transforms, utils
 from torchvision.transforms.functional import pad as TF_pad, center_crop, resize
-from diffusers import StableDiffusionXLPipeline, UniPCMultistepScheduler
+from diffusers import StableDiffusionPipeline, UniPCMultistepScheduler,DDPMScheduler
 from diffusers.utils import load_image,convert_unet_state_dict_to_peft
 from PIL import ImageOps
 import argparse
@@ -35,16 +35,24 @@ def pad_to_largest(tensor: torch.Tensor, max_width: int, max_height: int) -> tor
 
 def setup_pipeline(config: dict):
     """ Setup and configure the diffusion pipeline. """
-    pipe = StableDiffusionXLPipeline.from_pretrained(
+    pipe = StableDiffusionPipeline.from_pretrained(
         config["paths"]["base_model_path"], torch_dtype=torch.float16
     )
-    
     pipe.load_lora_weights(config["paths"]["lora_weights_path"],
-                           weight_name="pytorch_lora_weights.safetensors")
+    weight_name="pytorch_lora_weights.safetensors",dtype=torch.float32)
 
+    pipe.unet.load_lora_adapter(config["paths"]["lora_weights_path"],weight_name="pytorch_lora_weights.safetensors",prefix="unet",adapter_name="bdd_lora")
+    scales = {
+    "unet": {
+        "down": 0.5,  # all transformers in the down-part will use scale 0.9
+        # "mid"  # in this example "mid" is not given, therefore all transformers in the mid part will use the default scale 1.0
+        "up": 0.5
+    }
+    }
+    pipe.set_adapters("bdd_lora", scales)
+    
 
-
-    pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+    pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
     return pipe
 
@@ -59,8 +67,7 @@ def generate_images(pipe,config: dict):
     generator = torch.manual_seed(0)
 
     for i in range(config["num_generations"]):
-        generated_image = pipe(config["prompt"], num_inference_steps=35, width=1024, height=1024, generator=generator,
-                               negative_prompt=config["negative_prompt"]).images[0]
+        generated_image = pipe(config["prompt"], num_inference_steps=35, width=512, height=512, generator=generator,guidance_scale=0.8,negative_prompt=config["negative_prompt"]).images[0]
 
 
         generated_image.save(os.path.join(gen_outpath, f"generated_image_{Path(config["paths"]["lora_weights_path"]).name}_{i}.png"))
@@ -68,7 +75,7 @@ def generate_images(pipe,config: dict):
 
 if __name__ == '__main__':
     
-    parser = argparse.ArgumentParser(description="Run the SDXL lora inference pipeline.")
+    parser = argparse.ArgumentParser(description="Run lora inference pipeline.")
     parser.add_argument('--infer_config', type=str, required=True, help="Path to the infer.yaml configuration file.")
     args = parser.parse_args()
 
