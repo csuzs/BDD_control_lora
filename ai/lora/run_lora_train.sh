@@ -1,6 +1,6 @@
 
 source .env
-
+export MODEL_DIR="stable-diffusion-v1-5/stable-diffusion-v1-5"
 export OUTPUT_DIR="lora_all_classes_512r_05a_10k_dataset"
 
 accelerate launch \

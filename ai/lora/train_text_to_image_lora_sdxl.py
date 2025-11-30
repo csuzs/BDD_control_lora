@@ -28,7 +28,6 @@ import datasets
 import numpy as np
 import torch
 import torch.nn.functional as F
-import torch.utils.checkpoint
 import transformers
 from accelerate import Accelerator
 from accelerate.logging import get_logger
@@ -450,11 +449,6 @@ def parse_args(input_args=None):
     return args
 
 
-DATASET_NAME_MAPPING = {
-    "lambdalabs/naruto-blip-captions": ("image", "text"),
-}
-
-
 def tokenize_prompt(tokenizer, prompt):
     text_inputs = tokenizer(
         prompt,
@@ -835,24 +829,16 @@ def main(args):
     # We need to tokenize inputs and targets.
     column_names = dataset["train"].column_names
 
-    # 6. Get the column names for input/target.
-    dataset_columns = DATASET_NAME_MAPPING.get(args.dataset_name, None)
-    if args.image_column is None:
-        image_column = dataset_columns[0] if dataset_columns is not None else column_names[0]
-    else:
-        image_column = args.image_column
-        if image_column not in column_names:
-            raise ValueError(
-                f"--image_column' value '{args.image_column}' needs to be one of: {', '.join(column_names)}"
-            )
-    if args.caption_column is None:
-        caption_column = dataset_columns[1] if dataset_columns is not None else column_names[1]
-    else:
-        caption_column = args.caption_column
-        if caption_column not in column_names:
-            raise ValueError(
-                f"--caption_column' value '{args.caption_column}' needs to be one of: {', '.join(column_names)}"
-            )
+    image_column = args.image_column
+    if image_column not in column_names:
+        raise ValueError(
+            f"--image_column' value '{args.image_column}' needs to be one of: {', '.join(column_names)}"
+        )
+    caption_column = args.caption_column
+    if caption_column not in column_names:
+        raise ValueError(
+            f"--caption_column' value '{args.caption_column}' needs to be one of: {', '.join(column_names)}"
+        )
 
     # Preprocessing the datasets.
     # We need to tokenize input captions and transform the images.
@@ -1261,7 +1247,7 @@ def main(args):
 
         # run inference
         if args.validation_prompt and args.num_validation_images > 0:
-            images = log_validation(pipeline, args, accelerator, epoch, is_final_validation=True)
+            _ = log_validation(pipeline, args, accelerator, epoch, is_final_validation=True)
 
     accelerator.end_training()
 

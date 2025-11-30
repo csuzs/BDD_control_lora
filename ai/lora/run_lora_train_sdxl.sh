@@ -1,10 +1,12 @@
 
 source .env
 
-export OUTPUT_DIR="runs/lora_sdxl_all_relevant_classes_10k"
+export OUTPUT_DIR="runs/integration_test_sdxl_lora_train"
 export MODEL_DIR="stabilityai/stable-diffusion-xl-base-1.0"
-export WANDB_API_KEY="local-0eb05ebcc419aa920ca7641c054fc18570d3ce98"
+export VAE_NAME="madebyollin/sdxl-vae-fp16-fix"
+#export WANDB_API_KEY="put_your_wandb_api_key_here"
 export WANDB_MODE="offline"
+
 accelerate launch \
  --config_file=config/accelerate_config_a100_single.yaml \
  ai/lora/train_text_to_image_lora_sdxl.py \
@@ -19,14 +21,14 @@ accelerate launch \
  --resolution 1280 720 \
  --learning_rate=5e-5 \
  --mixed_precision="fp16" \
- --train_batch_size=32 \
+ --train_batch_size=4 \
  --gradient_accumulation_steps=1 \
  --gradient_checkpointing \
  --use_8bit_adam \
  --checkpointing_steps=250 \
  --resume_from_checkpoint='latest' \
  --report_to='wandb' \
- --rank=512 \
+ --rank=32 \
  --validation_prompt='["High resolution, 4k Traffic scene. Pedestrians walking.","High resolution, 4k Traffic scene. pedestrians walking.","High resolution, 4k Traffic scene. Bycicles on the road.","High resolution, 4k Traffic scene. trains next to the road."]' \
  --num_validation_images 2 \
- --pretrained_vae_model_name_or_path='madebyollin/sdxl-vae-fp16-fix'
+ --pretrained_vae_model_name_or_path=$VAE_NAME
