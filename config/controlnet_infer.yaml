@@ -1,19 +1,21 @@
 paths:
-  input_masks_path: "$bdd_dataset_path/bdd/bdd100k/labels/sem_seg/colormaps/val" 
+  input_masks_path: "/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-workspace/uic19759/bdd/bdd100k/labels/sem_seg/controlnet_colormaps/val" 
+  #base_model_path: "stable-diffusion-v1-5/stable-diffusion-v1-5"
   base_model_path: "stabilityai/stable-diffusion-xl-base-1.0"
-  controlnet_path: "$repo_root/runs/checkpoint-10000/controlnet"
-  attach_images_path: '$bdd_dataset_path/bdd/bdd100k/images/10k/train/' #original reference images
-  infer_path: '$repo_root/infer_out_10000'
-
+  
+  controlnet_path: "controlnet_sdxl_full_captions/checkpoint-50000"
+  attach_images_path: '/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-workspace/uic19759/bdd/bdd100k/images/10k/val/' #original reference images
+  infer_path: '/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-workspace/uic19759/BDD_control_lora/runs/infer_sdxl_full_captions' #output path for generated images
+  lora_weights_path: null
 mask_bg_color: [0,0,0]  # semseg mask color, on generated images this spot should be filled
 mask_ego_color: [0,0,0] # semseg mask color, on generated images this spot should be filled
 limit: 100
-guidance_scale: 3 
-prompt: "Traffic scene. Outside. Daytime. Sky. High resolution."
+guidance_scale: 7.5
+prompt: "High resolution, 4k Traffic scene."
 
 resolution:
   width: 1280
   height: 720
-negative_prompt: "cartoon"
-num_generations: 2 # generate this many images for a single input mask
+negative_prompt: "cartoon, blurry, lowres, bad anatomy, bad hands, cropped, worst quality, low quality"
+num_generations: 1 # generate this many images for a single input mask
 attach_reference_image: True # attach the reference image to the output grids

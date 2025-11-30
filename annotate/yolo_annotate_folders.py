@@ -69,7 +69,7 @@ def detect_pedestrians_folder(input_folder, output_folder):
                     confidence = float(box.conf[0])
                     
                     # Filter for bus class (class_id = 5)
-                    if class_id == 0 and confidence > 0.5:
+                    if class_id == 5 and confidence > 0.5:
                         instance_count += 1
                         total_instances += 1
                         
@@ -80,7 +80,7 @@ def detect_pedestrians_folder(input_folder, output_folder):
                         cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                         
                         # Add confidence label
-                        label = f"motorcycle: {confidence:.2f}"
+                        label = f"Bus: {confidence:.2f}"
                         cv2.putText(image, label, (x1, y1-10), 
                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
@@ -95,7 +95,7 @@ def detect_pedestrians_folder(input_folder, output_folder):
                         yolo_annotations.append(yolo_line)
 
         # Add pedestrian count to image
-        cv2.putText(image, f"Bycicle: {instance_count}", (10, 30),
+        cv2.putText(image, f"Bus: {instance_count}", (10, 30),
                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
         
         # Save output image with detections
@@ -144,8 +144,8 @@ def batch_process_multiple_folders(base_input_dir, base_output_dir):
 # Example usage
 if __name__ == "__main__":
     # Single folder processing
-    input_folder = "/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-data/bdd10k/lora_sdxl_generations_scale05_guidance7_bycicles2/generations"
-    output_folder = "/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-data/bdd10k/annotated/lora_sdxl_generations_scale05_guidance7_bycicles2_riders"
+    input_folder = "/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-data/bdd10k/lora_sdxl_generations_scale05_guidance7_buses2/generations"
+    output_folder = "/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-data/bdd10k/annotated/lora_sdxl_generations_scale05_guidance7_buses2"
     # Uncomment to run single folder processing
     detect_pedestrians_folder(input_folder, output_folder)
     

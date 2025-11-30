@@ -1,14 +1,15 @@
 paths:
   base_model_path: "stabilityai/stable-diffusion-xl-base-1.0"
-  lora_weights_path: "/project_workspace/uic19759/diffusers_semseg_controlnet/examples/controlnet/lora_runs/checkpoint-15000"
-  images_path: '/project_workspace/uic19759/bdd/bdd100k/images/10k/test/' #original reference images
-  infer_path: 'infer_out_lora'
+  pretrained_vae_model_name_or_path: "madebyollin/sdxl-vae-fp16-fix"
+  lora_weights_path: "BDD_control_lora/runs/lora_sdxl_all_relevant_classes_10k/checkpoint-103500"
+  infer_path: "lora_sdxl_generations_scale05_guidance7_train"
 
-limit: 100
-prompt: "Traffic scene. Daytime. Sky. High resolution. Pedestrians walking before the car."
-
+prompt: "High resolution, 4k Traffic scene. Train next to the road."
+guidance_scale: 7.0
+adapter_scale: 0.5
 resolution:
   width: 1280
   height: 720
-negative_prompt: "cartoon"
-num_generations: 100 # generate this many images for a single input mask
+negative_prompt: "cartoon, blurry, low quality, bad anatomy"
+num_generations: 60 # generate this many images for a single input mask
+num_images_per_prompt: 40 # generate this many images for each input mask
