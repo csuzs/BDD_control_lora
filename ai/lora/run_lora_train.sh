@@ -25,10 +25,10 @@ accelerate launch \
  --gradient_accumulation_steps=1 \
  --gradient_checkpointing \
  --use_8bit_adam \
- --checkpointing_steps=250 \
+ --checkpointing_steps=1000 \
  --resume_from_checkpoint='latest' \
  --report_to='wandb' \
- --rank=32 \
+ --rank=64 \
  --validation_prompt='["High resolution, 4k Traffic scene. Pedestrians walking.","High resolution, 4k Traffic scene. pedestrians walking.","High resolution, 4k Traffic scene. Bycicles on the road.","High resolution, 4k Traffic scene. trains next to the road."]' \
  --num_validation_images 2 \
  --pretrained_vae_model_name_or_path=$VAE_NAME

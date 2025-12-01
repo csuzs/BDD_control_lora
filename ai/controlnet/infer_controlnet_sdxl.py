@@ -7,7 +7,7 @@ import torch
 import yaml
 from PIL import ImageFont, ImageDraw, Image
 from torchvision import transforms
-from torchvision.transforms.functional import pad as TF_pad, center_crop, resize
+from torchvision.transforms.functional import pad as TF_pad
 from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
 from PIL import ImageOps
 

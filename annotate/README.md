@@ -22,7 +22,7 @@ This is particularly useful in workflows where:
 ## Prerequisites
 
 - Python 3.8+
-- ultralytics (YOLOv8)
+- ultralytics (YOLOv12)
 - opencv-python (cv2)
 - tqdm
 - numpy
@@ -58,8 +58,10 @@ python yolo_annotate_folders.py \
 
 **Arguments:**
 
-- `--input_folder` (required): Path to folder containing synthetic images
-- `--output_folder` (required): Path where annotated images and labels will be saved
+* `--input_folder` (required): Path to folder containing synthetic images
+* `--output_folder` (required): Path where annotated images and labels will be saved
+* `--class_name` (required): Class name to detect (e.g., 'bus', 'person')
+* `--yolo_model` (required): YOLO model path or name (e.g., 'yolo12x.pt', 'yolov8x.pt')
 
 ### Output Structure
 
