@@ -165,7 +165,7 @@ if __name__ == "__main__":
     parser.add_argument("--input_folder", type=str, required=True, help="Path to input images folder")
     parser.add_argument("--output_folder", type=str, required=True, help="Path to save output images and labels")
     parser.add_argument("--class_name", type=str, required=True, help="Class name to detect (e.g., 'bus', 'person')")
-    parser.add_argument("--yolo_model", type=str, default="yolov12x.pt", help="YOLO model path or name (e.g., 'yolov12x.pt')")
+    parser.add_argument("--yolo_model", type=str, default="yolo12x.pt", help="YOLO model path or name (e.g., 'yolo12x.pt')")
     args = parser.parse_args()
 
     input_folder = args.input_folder

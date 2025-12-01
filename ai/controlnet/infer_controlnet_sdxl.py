@@ -11,9 +11,6 @@ from torchvision.transforms.functional import pad as TF_pad
 from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
 from PIL import ImageOps
 
-from dotenv import load_dotenv
-
-load_dotenv()
 # Load configuration from YAML
 def load_config(file_path: str) -> dict:
     with open(file_path, 'r') as file:

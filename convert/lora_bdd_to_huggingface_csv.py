@@ -45,11 +45,9 @@ def bdd_to_hf_csv(image_folder: Path, caption_folder: Path, output_folder: Path,
         'caption': captions
     })
     
-    train_df = df
-    
     output_csv_path: Path = output_folder / f"bdd_hf_dataset_{split}.csv"
     
-    train_df.to_csv(output_csv_path, index=False)
+    df.to_csv(output_csv_path, index=False)
     
     
 if __name__ == "__main__":

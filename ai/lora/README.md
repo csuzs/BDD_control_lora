@@ -1,19 +1,6 @@
 # SDXL LoRA Training and Inference Pipeline
 
-This repository contains scripts for finetuning Stable Diffusion XL (SDXL) using Low-Rank Adaptation (LoRA) and running inference with the trained adapters. The pipeline consists of two main stages: training a LoRA adapter on your custom dataset, and then using that adapter to generate images.
-
-## Prerequisites
-
-Ensure you have the necessary dependencies installed:
-
-```bash
-pip install torch torchvision transformers diffusers accelerate peft safetensors pyyaml
-```
-
-For memory-efficient training, install:
-```bash
-pip install bitsandbytes xformers
-```
+This folder contains scripts for finetuning Stable Diffusion XL (SDXL) using Low-Rank Adaptation (LoRA) and running inference with the trained adapters. The pipeline consists of two main stages: training a LoRA adapter on your custom dataset, and then using that adapter to generate images.
 
 ## 1. Training
 
@@ -63,7 +50,7 @@ The `run_lora_train.sh` script configures the training process. Below are the ke
 - `--report_to`: Logging platform (e.g., `'wandb'` for Weights & Biases).
 
 **Accelerator Config:**
-- `--config_file`: Path to the 🤗 Accelerate config file (e.g., `config/accelerate_config_a100_single.yaml`), which defines distributed training settings and hardware usage.
+- `--config_file`: Path to the HuggingFace Accelerate config file (e.g., `config/accelerate_config_a100_single.yaml`), which defines distributed training settings and hardware usage.
 
 ---
 
@@ -93,19 +80,19 @@ The inference process is controlled by a YAML file referenced in `run_lora_infer
 paths:
   base_model_path: "stabilityai/stable-diffusion-xl-base-1.0"
   lora_weights_path: "runs/integration_test_sdxl_lora_train"  # Path to your trained LoRA output_dir
-  pretrained_vae_model_name_or_path: "madebyollin/sdxl-vae-fp16-fix"
+  pretrained_vae_model_name_or_path: "madebyollin/sdxl-vae-fp16-fix" # needed for numerical stability during training - otherwise finetune won't converge
   infer_path: "inference_outputs"
 
 prompt: "High resolution, 4k Traffic scene. Pedestrians walking."
 negative_prompt: "blurry, low quality, distortion"
-adapter_scale: 0.8  # Strength of the LoRA adapter (0.0 to 1.0)
+adapter_scale: 0.8  # Strength of the LoRA adapter (0.0 to 1.0) Changing this parameter decides how strong should be the influence of the dataset the adapter was finetuned on during image generation
 
 resolution:
   width: 1280
   height: 720
 
 num_generations: 5
-guidance_scale: 7.5
+guidance_scale: 7.5 # This parameter decides how strong the prompt influences the image generation process 
 ```
 
 **Key Configuration Parameters:**

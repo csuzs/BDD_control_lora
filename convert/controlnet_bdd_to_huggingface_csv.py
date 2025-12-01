@@ -5,7 +5,6 @@ from tqdm import tqdm
 import yaml
 from pathlib import Path
 import argparse
-from sklearn.model_selection import train_test_split
 
 def bdd_to_hf_csv(image_folder: Path, condition_folder: Path, caption_folder: Path, output_folder: Path):
     """

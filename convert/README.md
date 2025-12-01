@@ -174,29 +174,6 @@ python lora_bdd_to_huggingface_csv.py \
   --split train
 ```
 
-After running these scripts, use the generated CSV files with diffusers training scripts:
-
-```bash
-# ControlNet finetuning
-accelerate launch train_controlnet_bdd.py \
-  --dataset_name ./dataset_csvs/bdd_hf_dataset_controlnet_train.csv \
-  ...
-
-# LoRA finetuning
-accelerate launch train_text_to_image_lora.py \
-  --dataset_name ./dataset_csvs/bdd_hf_dataset_val.csv \
-  ...
-```
-
-## Notes and Limitations
-
-- **Filename Matching**: All three data types (images, captions, conditions) must share the same base filename for matching to work correctly.
-- **Caption Generation**: Default fallback caption is `"High resolution, 4k Traffic scene."` for images without explicit captions.
-- **LoRA CSV Output**: The `lora_bdd_to_huggingface_csv.py` script currently hardcodes the output filename to `bdd_hf_dataset_val.csv` regardless of the `--split` argument. Consider updating this for multi-split workflows.
-- **Pedestrian Detection**: The caption generator distinguishes "close" pedestrians using bounding box dimensions (width > 75 or height > 150 pixels).
-- **Missing Conditions**: ControlNet CSV creation skips images without corresponding condition masks. For LoRA, images are included regardless.
-- **Memory**: For large datasets (100k+ images), consider processing in batches or reducing dataset size during development.
-
 ## Integration with Diffusers
 
 These scripts prepare datasets compatible with:

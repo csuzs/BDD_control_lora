@@ -14,27 +14,8 @@ Two main workflows are supported:
 Ensure you have the required dependencies installed:
 
 ```bash
-pip install torch torchvision transformers diffusers accelerate peft pillow pyyaml dotenv
+pip install torch torchvision transformers diffusers accelerate peft pillow pyyaml
 ```
-
-For efficient training on multi-GPU setups:
-
-```bash
-pip install bitsandbytes xformers
-```
-
-## Setup
-
-Create a `.env` file in the project root with environment variables:
-
-```bash
-# .env
-export HF_HOME="/path/to/huggingface/cache"
-export MODEL_DIR="/path/to/local/model/dir"
-export VAE_DIR="/path/to/local/vae/dir"
-```
-
-This allows the shell scripts to reference these variables instead of hardcoding paths.
 
 ## Training Workflow
 
@@ -172,7 +153,6 @@ image,condition,caption
 
 - **VRAM Requirements**: ~24 GB for batch size 16 at 1024x1024 resolution on A100. Reduce batch size for smaller GPUs.
 - **Learning Rate**: Start with `1e-4` and adjust down if loss increases early.
-- **Epochs**: ControlNet often overfits after 50-100 epochs on small datasets. Monitor validation loss.
 - **Mixed Precision**: Use `fp16` on GPUs with Tensor Cores (V100, A100, RTX30/40 series). Use `bf16` on newer hardware.
 - **Gradient Checkpointing**: Useful for large images or batch sizes; adds ~20-30% compute overhead.
 
@@ -278,8 +258,8 @@ num_generations: 2
 limit: 50
 
 resolution:
-  width: 1024
-  height: 1024
+  width: 1280
+  height: 720
 
 attach_reference_image: false
 ```
@@ -304,9 +284,6 @@ attach_reference_image: false
 **Issue**: "Config file not found" during inference  
 **Solution**: Ensure `config/controlnet_infer.yaml` exists and paths point to valid directories.
 
-**Issue**: Slow inference  
-**Solution**: Ensure `enable_model_cpu_offload()` is used in inference script for memory efficiency.
-
 ## Integration with Dataset Preparation
 
 Use the earlier dataset preparation scripts to create training data:
@@ -322,7 +299,3 @@ Use the earlier dataset preparation scripts to create training data:
 - [ControlNet Paper](https://arxiv.org/abs/2302.05543)
 - [Stable Diffusion XL](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)
 - [Accelerate Documentation](https://huggingface.co/docs/accelerate/)
-
-## License
-
-These scripts are adapted from the Hugging Face diffusers library and are provided under the Apache 2.0 license. Refer to `train_controlnet_sdxl.py` header for full license details.

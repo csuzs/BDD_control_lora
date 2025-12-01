@@ -13,7 +13,7 @@ accelerate launch \
  --image_column "image" \
  --conditioning_image_column "condition" \
  --caption_column "caption" \
- --resolution 1024 1024 \
+ --resolution 1280 720 \
  --learning_rate=1e-4 \
  --mixed_precision="fp16" \
  --tracker_project_name="controlnet_sdxl" \
@@ -26,7 +26,7 @@ accelerate launch \
  --report_to='wandb' \
  --num_train_epochs=1000 \
  --proportion_empty_prompts 0.2 \
- --validation_image "/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-workspace/uic19759/bdd/bdd100k/labels/sem_seg/controlnet_colormaps/val/7de7130e-3d65b555.png" \
+ --validation_image "$BDD_DATA_PATH/bdd100k/labels/sem_seg/controlnet_colormaps/val/7de7130e-3d65b555.png" \
  --validation_prompt "High resolution, 4k Traffic scene." \
  --resume_from_checkpoint="latest" \
  --pretrained_vae_model_name_or_path=$VAE_DIR
