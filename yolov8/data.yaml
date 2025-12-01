@@ -1,0 +1,13 @@
+# BDD100K dataset configuration
+# Adjust paths relative to the yolov7 directory or use absolute paths
+
+train: 
+  - BDDimages/train  # Path to training images
+#  - /storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-data/bdd10k/training_data/lora_sdxl_generations_scale065_guidance14_twowheelers/images/train
+val: /storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-workspace/uic19759/bdd_coco_labels/images/val    # Path to validation images
+
+# number of classes
+nc: 10  # CHANGE THIS to the number of classes in your class_mapping
+
+# class names
+names: ['pedestrian', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle', 'traffic light', 'traffic sign'] # CHANGE THIS to match your class_mapping ORDER EXACTLY
