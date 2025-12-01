@@ -3,6 +3,7 @@ import json
 from ultralytics import YOLO
 import cv2
 from tqdm import tqdm
+import argparse
 # Load YOLOv8-large model
 model = YOLO("yolo12x.pt")
 
@@ -144,16 +145,12 @@ def batch_process_multiple_folders(base_input_dir, base_output_dir):
 # Example usage
 if __name__ == "__main__":
     # Single folder processing
-    input_folder = "/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-data/bdd10k/lora_sdxl_generations_scale05_guidance7_buses2/generations"
-    output_folder = "/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-data/bdd10k/annotated/lora_sdxl_generations_scale05_guidance7_buses2"
-    # Uncomment to run single folder processing
+    parser = argparse.ArgumentParser(description="Detect buses in images using YOLOv8.")
+    parser.add_argument("--input_folder", type=str, required=True, help="Path to input images folder")
+    parser.add_argument("--output_folder", type=str, required=True, help="Path to save output images and labels")
+    args = parser.parse_args()
+
+    input_folder = args.input_folder
+    output_folder = args.output_folder
+
     detect_pedestrians_folder(input_folder, output_folder)
-    
-    # Multiple folder processing
-    # Uncomment to run batch processing
-    # batch_process_multiple_folders("path/to/base/input", "path/to/base/output")
-    
-    # Example with actual paths (modify as needed)
-    # detect_pedestrians_folder("./input_images", "./detected_images")
-    
-    print("Script ready to run. Uncomment the desired function call above.")

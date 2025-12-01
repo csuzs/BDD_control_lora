@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import argparse
 
 
 def create_bdd_captions(frame_metadata_path: str, caption_txt_output_folder: str):
@@ -66,4 +67,16 @@ def create_bdd_captions(frame_metadata_path: str, caption_txt_output_folder: str
 
 if __name__ == "__main__":
     bdd_prefix_path = os.environ.get("BDD_DATA_DIR","")
-    create_bdd_captions(frame_metadata_path=Path(bdd_prefix_path) / Path("det_val.json"),caption_txt_output_folder="/storage/gpfs/data-store/projects/parking-data-ops/ws/shared/project-workspace/uic19759/bdd_captions/10k/bdd_captions_all_relevant_objects/val")
+    
+    parser = argparse.ArgumentParser(description="Generate BDD captions from metadata.")
+    parser.add_argument("--bdd_data_dir", type=str, default=bdd_prefix_path, help="Path to BDD data directory")
+    parser.add_argument("--caption_txt_output_folder", type=str, required=True, help="Output folder for caption txt files")
+    args = parser.parse_args()
+
+    bdd_prefix_path = args.bdd_data_dir
+    caption_txt_output_folder = args.caption_txt_output_folder
+    
+    create_bdd_captions(
+        frame_metadata_path=Path(bdd_prefix_path) / Path("det_val.json"),
+        caption_txt_output_folder=caption_txt_output_folder
+    )

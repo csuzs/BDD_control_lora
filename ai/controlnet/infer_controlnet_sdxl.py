@@ -6,10 +6,9 @@ import numpy as np
 import torch
 import yaml
 from PIL import ImageFont, ImageDraw, Image
-from torchvision import transforms, utils
+from torchvision import transforms
 from torchvision.transforms.functional import pad as TF_pad, center_crop, resize
 from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
-from diffusers.utils import load_image
 from PIL import ImageOps
 
 from dotenv import load_dotenv
@@ -44,9 +43,6 @@ def setup_pipeline(config: dict):
     pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
         config["paths"]["base_model_path"], controlnet=controlnet, torch_dtype=torch.float16,local_files_only=True
     )
-    #pipe.load_lora_weights("/project_workspace/uic19759/diffusers_semseg_controlnet/examples/controlnet/lora_runs/checkpoint-10000",
-    #                       weight_name="pytorch_lora_weights.safetensors")
-    #
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
     return pipe
@@ -126,61 +122,39 @@ def process_single_image(file, pipe, transform, gen_outpath, grid_outpath, mask_
                                guidance_scale=config["guidance_scale"], negative_prompt=config["negative_prompt"]).images[0]
 
         # Process the background color and replace it with black in the generated image
-        mask_bg_color = config["mask_bg_color"]
-        ego_vehicle_color = config["mask_ego_color"]
         gen_array = np.array(generated_image)
-        semseg_array = np.array(semseg_image)
 
-        # Create a mask where the semseg image matches the background color
-        bg_mask = np.all(semseg_array == mask_bg_color,axis=2)
-        
-        ego_mask = np.all(semseg_array == ego_vehicle_color,axis=2)
-                
-        # Apply the mask to the generated image by setting the matching pixels to black and gray
-
-        #gen_array[ego_mask] = [0,0,0]
-        #gen_array[bg_mask] = [0, 0, 0]
-        # Convert back to image and save the modified generated image
         generated_image = Image.fromarray(gen_array)
 
-        # Resize the generated image while preserving aspect ratio
         generated_image.thumbnail((config["resolution"]["width"], config["resolution"]["height"]))
         generated_image = ImageOps.expand(generated_image, border=((config["resolution"]["width"] - generated_image.width) // 2,
                                                                    (config["resolution"]["height"] - generated_image.height) // 2),
                                           fill=(255, 255, 255))  # Fill the padding with white
         generated_image.save(os.path.join(gen_outpath, f'{base_filename}_{i}.png'))
 
-        # Prepare the images for grid creation
         text_height = int(config["resolution"]["height"] * 0.1)  # Set text row height to 10% of the image height
         prompt_image = create_text_image(config["resolution"]["width"] * 2, text_height, text=f'Mask and generated image from prompt: "{config["prompt"]}"')
 
-        # Combine the images into a grid
         combined_image = Image.new('RGB', (config["resolution"]["width"] * 2, config["resolution"]["height"] + text_height), color=(255, 255, 255))
         combined_image.paste(semseg_image, (0, 0))
         combined_image.paste(generated_image, (config["resolution"]["width"], 0))
         combined_image.paste(prompt_image, (0, config["resolution"]["height"]))
 
-        # Check if the reference image should be attached
         if config.get("attach_reference_image", False):
             ref_image_path = os.path.join(config["paths"]["attach_images_path"], f"{base_filename}.png")
             if os.path.exists(ref_image_path):
                 reference_image = Image.open(ref_image_path)
 
-                # Resize the reference image while preserving aspect ratio
                 reference_image.thumbnail((config["resolution"]["width"], config["resolution"]["height"]))
 
-                # Create a blue background for the reference image
                 reference_background = Image.new('RGB', (config["resolution"]["width"], config["resolution"]["height"]), color=(50, 121, 168))
 
-                # Calculate position to paste the resized reference image onto the blue background
                 ref_x = (config["resolution"]["width"] - reference_image.width) // 2
                 ref_y = (config["resolution"]["height"] - reference_image.height) // 2
                 reference_background.paste(reference_image, (ref_x, ref_y))
 
-                # Create the text image for "Reference image"
                 reference_text_image = create_text_image(config["resolution"]["width"], text_height, text="Reference image")
 
-                # Create a new combined image with three columns (semseg + generated + reference)
                 combined_image_with_ref = Image.new('RGB', (config["resolution"]["width"] * 3, config["resolution"]["height"] + text_height), color=(255, 255, 255))
                 combined_image_with_ref.paste(semseg_image, (0, 0))
                 combined_image_with_ref.paste(generated_image, (config["resolution"]["width"], 0))
@@ -190,7 +164,6 @@ def process_single_image(file, pipe, transform, gen_outpath, grid_outpath, mask_
 
                 combined_image = combined_image_with_ref
 
-        # Save the combined grid image
         combined_image.save(os.path.join(grid_outpath, f"{base_filename}_grid_{i}.png"))
 
 if __name__ == '__main__':

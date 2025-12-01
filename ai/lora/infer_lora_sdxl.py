@@ -4,13 +4,11 @@ import re
 
 import torch
 import yaml
-from torchvision.transforms.functional import pad as TF_pad, center_crop, resize
-from diffusers import StableDiffusionPipeline, DDPMScheduler,StableDiffusionXLPipeline,AutoencoderKL
-from diffusers.utils import load_image,convert_unet_state_dict_to_peft
+from torchvision.transforms.functional import pad as TF_pad
+from diffusers import DDPMScheduler,StableDiffusionXLPipeline,AutoencoderKL
 import argparse
 from pathlib import Path
-from diffusers.loaders import StableDiffusionLoraLoaderMixin
-from safetensors.torch import load_file, save_file
+from safetensors.torch import load_file
 import torch
 
 
@@ -39,11 +37,7 @@ def setup_pipeline(config: dict):
     pipe = StableDiffusionXLPipeline.from_pretrained(
         config["paths"]["base_model_path"], torch_dtype=torch.float16
     )
-    #converted_lora = convert_peft_lora_to_diffusers(
-    #config["paths"]["lora_weights_path"] + "/pytorch_lora_weights.safetensors"
-    #)
-    #pipe.load_lora_weights(converted_lora)
-    
+
     if config["paths"]["pretrained_vae_model_name_or_path"] is not None:
         pipe.vae = AutoencoderKL.from_pretrained(
             config["paths"]["pretrained_vae_model_name_or_path"],
@@ -104,12 +98,6 @@ def generate_images(pipe,config: dict):
                 gen_outpath,
                 f"generated_image_{Path(config['paths']['lora_weights_path']).name}_{i}_{j}.png"
             ))
-        """
-        
-        generated_image = pipe(config["prompt"], num_inference_steps=35, width=config["resolution"]["width"], height=config["resolution"]["height"], generator=generator, negative_prompt=config["negative_prompt"],guidance_scale=config["guidance_scale"]).images[0]
-        """
-        #generated_image.save(os.path.join(gen_outpath, f"generated_image_{Path(config["paths"]##["lora_weights_path"]).name}_{i}.png"))
-
 
 if __name__ == '__main__':
     
