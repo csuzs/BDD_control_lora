@@ -105,11 +105,14 @@ def process_single_image(file, pipe, transform, gen_outpath, grid_outpath, mask_
     semseg_full_path = os.path.join(config["paths"]["input_masks_path"], file)
     semseg_image = Image.open(semseg_full_path).convert("RGB")
 
-    # Resize the semseg image while preserving aspect ratio and save
-    semseg_image.thumbnail((config["resolution"]["width"], config["resolution"]["height"]))
+    # NEAREST preserves the discrete class colors from the colormap; bilinear
+    # would interpolate edges into RGB values not in the palette.
+    semseg_image.thumbnail((config["resolution"]["width"], config["resolution"]["height"]), Image.NEAREST)
+    # Pad with the colormap "background" color (0,0,0) — matches a class the
+    # network has seen during training, unlike white.
     semseg_image = ImageOps.expand(semseg_image, border=((config["resolution"]["width"] - semseg_image.width) // 2,
                                                          (config["resolution"]["height"] - semseg_image.height) // 2),
-                                   fill=(255, 255, 255))  # Fill the padding with white
+                                   fill=(0, 0, 0))
     semseg_image.save(os.path.join(mask_outpath, f'{base_filename}.png'))
 
 

@@ -129,9 +129,11 @@ def log_validation(vae, unet, controlnet, args, accelerator, weight_dtype, step,
     else:
         autocast_ctx = torch.autocast(accelerator.device.type)
 
+    # args.resolution is (H, W); PIL Image.resize takes (W, H).
+    pil_size = (args.resolution[1], args.resolution[0])
     for validation_prompt, validation_image in zip(validation_prompts, validation_images):
         validation_image = Image.open(validation_image).convert("RGB")
-        validation_image = validation_image.resize(args.resolution)
+        validation_image = validation_image.resize(pil_size, Image.NEAREST)
         images = []
         for _ in range(args.num_validation_images):
             with autocast_ctx:
@@ -264,10 +266,11 @@ def parse_args(input_args=None):
         "--resolution",
         nargs="+",
         type=int,
-        default=[1280,720],
+        default=[720, 1280],
         help=(
-            "The resolution for input images, all the images in the train/validation dataset will be resized to this"
-            " resolution"
+            "Target resolution as `HEIGHT WIDTH` (e.g. `720 1280` for landscape BDD). "
+            "torchvision Resize/CenterCrop and SDXL add_time_ids both use (H, W); "
+            "PIL conversions in this file translate to (W, H) where needed."
         ),
     )
     parser.add_argument(
@@ -689,21 +692,24 @@ def encode_prompt(prompt_batch, text_encoders, tokenizers, proportion_empty_prom
 
 
 def prepare_train_dataset(dataset, accelerator):
+    # `args.resolution` is (H, W). torchvision Resize/CenterCrop with a sequence
+    # also expect (H, W), so this matches.
     image_transforms = transforms.Compose(
         [
             transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.CenterCrop(args.resolution),
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5]),
         ]
     )
 
+    # Segmentation masks: must use NEAREST so palette colors are preserved
+    # (BILINEAR blends adjacent class colors into values not in the colormap).
+    # Do NOT divide by 255 — ToTensor already maps uint8 [0,255] -> float [0,1],
+    # which is the range ControlNet expects for conditioning.
     conditioning_image_transforms = transforms.Compose(
         [
-            transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.CenterCrop(args.resolution),
+            transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.NEAREST),
             transforms.ToTensor(),
-            transforms.Lambda(lambda x: x / 255.),
         ]
     )
 

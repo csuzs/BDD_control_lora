@@ -43,7 +43,7 @@ The `run_controlnet_train.sh` file configures training through the following key
 
 **Training Parameters:**
 
-- `--resolution`: Output image resolution as two integers `[width height]`. Example: `1024 1024`
+- `--resolution`: Output image resolution as two integers `[HEIGHT WIDTH]` (matches torchvision and SDXL conventions). Example: `720 1280` for landscape BDD frames.
 - `--train_batch_size`: Batch size per GPU. Example: `16` (adjust based on available VRAM)
 - `--learning_rate`: Learning rate for the optimizer. Default: `1e-4` (typical for ControlNet)
 - `--num_train_epochs`: Number of training epochs. Example: `1000`
