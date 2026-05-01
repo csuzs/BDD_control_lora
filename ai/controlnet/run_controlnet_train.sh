@@ -3,6 +3,8 @@ source .env
 export OUTPUT_DIR="runs/controlnet_test_sdxl_train"
 export MODEL_NAME="stabilityai/stable-diffusion-xl-base-1.0"
 export VAE_NAME="madebyollin/sdxl-vae-fp16-fix"
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 accelerate launch \
  --config_file=config/accelerate_config_a100_single.yaml \
  ai/controlnet/train_controlnet_sdxl.py \
@@ -17,7 +19,7 @@ accelerate launch \
  --learning_rate=1e-4 \
  --mixed_precision="fp16" \
  --tracker_project_name="controlnet_sdxl" \
- --train_batch_size=8 \
+ --train_batch_size=6 \
  --gradient_accumulation_steps=1 \
  --gradient_checkpointing \
  --use_8bit_adam \

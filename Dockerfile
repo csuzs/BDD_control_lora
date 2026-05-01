@@ -1,6 +1,7 @@
+# Adapted from https://github.com/huggingface/diffusers/blob/main/docker/diffusers-pytorch-cuda/Dockerfile (Apache 2.0)
 FROM nvidia/cuda:12.1.0-runtime-ubuntu20.04
-LABEL maintainer="Hugging Face"
-LABEL repository="diffusers"
+LABEL maintainer="uic19759"
+LABEL repository="BDD_control_lora"
 
 ENV DEBIAN_FRONTEND=noninteractive
 

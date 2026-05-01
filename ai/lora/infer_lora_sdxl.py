@@ -5,7 +5,7 @@ import re
 import torch
 import yaml
 from torchvision.transforms.functional import pad as TF_pad
-from diffusers import DDPMScheduler,StableDiffusionXLPipeline,AutoencoderKL
+from diffusers import StableDiffusionXLPipeline, AutoencoderKL
 import argparse
 from pathlib import Path
 from safetensors.torch import load_file
@@ -56,7 +56,7 @@ def setup_pipeline(config: dict):
     
         diffusers_state_dict[new_key] = value
     
-    pipe.load_lora_weights(diffusers_state_dict, adapter_name="bdd_lora",dtype=torch.float16)
+    pipe.load_lora_weights(diffusers_state_dict, adapter_name="bdd_lora")
     # Read in PyTorch weights from the specified path
     scales = {
     "unet": {
@@ -66,7 +66,6 @@ def setup_pipeline(config: dict):
     }
     }
     pipe.set_adapters("bdd_lora", scales)
-    pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
     return pipe
 
@@ -78,19 +77,25 @@ def generate_images(pipe,config: dict):
     with open(config_outpath, 'w') as config_file:
         json.dump(config, config_file, indent=4)
 
-    generator = torch.manual_seed(0)
+    seed = config.get("seed")
+    device = pipe._execution_device
+    generator = torch.Generator(device=device)
+    if seed is not None:
+        generator.manual_seed(seed)
+
+    images_per_prompt = config.get("num_images_per_prompt", 4)
+    num_inference_steps = config.get("num_inference_steps", 50)
 
     for i in range(config["num_generations"]):
-        # Generate 4 images at once (batch)
         images = pipe(
             config["prompt"],
-            num_inference_steps=50,
+            num_inference_steps=num_inference_steps,
             width=config["resolution"]["width"],
             height=config["resolution"]["height"],
             generator=generator,
-        negative_prompt=config["negative_prompt"],
+            negative_prompt=config["negative_prompt"],
             guidance_scale=config["guidance_scale"],
-            num_images_per_prompt=40
+            num_images_per_prompt=images_per_prompt,
         ).images
 
         for j, img in enumerate(images):

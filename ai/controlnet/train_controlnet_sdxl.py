@@ -12,6 +12,8 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
+# limitations under the License.
+# Adapted for BDD by Zsombor Csurilla from https://github.com/huggingface/diffusers/blob/main/examples/controlnet/train_controlnet_sdxl.py
 
 import argparse
 import functools
@@ -98,7 +100,8 @@ def log_validation(vae, unet, controlnet, args, accelerator, weight_dtype, step,
         )
             
     pipeline.scheduler = UniPCMultistepScheduler.from_config(pipeline.scheduler.config)
-    pipeline = pipeline.to(accelerator.device)
+    gpu_id = accelerator.device.index if accelerator.device.index is not None else 0
+    pipeline.enable_model_cpu_offload(gpu_id=gpu_id)
     pipeline.set_progress_bar_config(disable=True)
 
     if args.enable_xformers_memory_efficient_attention:
@@ -180,11 +183,11 @@ def log_validation(vae, unet, controlnet, args, accelerator, weight_dtype, step,
         else:
             logger.warning(f"image logging not implemented for {tracker.name}")
 
-        del pipeline
-        gc.collect()
-        torch.cuda.empty_cache()
+    del pipeline
+    gc.collect()
+    torch.cuda.empty_cache()
 
-        return image_logs
+    return image_logs
 
 
 def import_model_class_from_model_name_or_path(

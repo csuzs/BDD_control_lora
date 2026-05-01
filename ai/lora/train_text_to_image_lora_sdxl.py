@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# Adapted for BDD by Zsombor Csurilla from https://github.com/huggingface/diffusers/blob/main/examples/text_to_image/train_text_to_image_lora_sdxl.py
 """Fine-tuning script for Stable Diffusion XL for text2image with support for LoRA."""
 
 import argparse
@@ -89,14 +90,21 @@ def log_validation(
 
     # run inference
     generator = torch.Generator(device=accelerator.device).manual_seed(args.seed) if args.seed else None
-    pipeline_args = {"prompt": args.validation_prompt}
     if torch.backends.mps.is_available():
         autocast_ctx = nullcontext()
     else:
         autocast_ctx = torch.autocast(accelerator.device.type)
 
+    prompts = args.validation_prompt if isinstance(args.validation_prompt, list) else [args.validation_prompt]
+    images = []
+    image_captions = []
     with autocast_ctx:
-        images = [pipeline(**pipeline_args, generator=generator,width=1280, height=720).images[0] for _ in range(args.num_validation_images)]
+        for prompt in prompts:
+            for _ in range(args.num_validation_images):
+                images.append(
+                    pipeline(prompt=prompt, generator=generator, width=args.resolution[0], height=args.resolution[1]).images[0]
+                )
+                image_captions.append(prompt)
 
     for tracker in accelerator.trackers:
         phase_name = "test" if is_final_validation else "validation"
@@ -107,7 +115,7 @@ def log_validation(
             tracker.log(
                 {
                     phase_name: [
-                        wandb.Image(image, caption=f"{i}: {args.validation_prompt}") for i, image in enumerate(images)
+                        wandb.Image(image, caption=f"{i}: {image_captions[i]}") for i, image in enumerate(images)
                     ]
                 }
             )
@@ -197,11 +205,18 @@ def parse_args(input_args=None):
         default="text",
         help="The column of the dataset containing a caption or a list of captions.",
     )
+    def _parse_validation_prompt(s):
+        s = s.strip()
+        if s.startswith("["):
+            import json
+            return json.loads(s)
+        return [s]
+
     parser.add_argument(
         "--validation_prompt",
-        type=str,
+        type=_parse_validation_prompt,
         default=None,
-        help="A prompt that is used during validation to verify that the model is learning.",
+        help="A prompt (or JSON list of prompts) used during validation to verify that the model is learning.",
     )
     parser.add_argument(
         "--num_validation_images",
@@ -860,7 +875,7 @@ def main(args):
 
     # Preprocessing the datasets.
     train_resize = transforms.Resize([args.resolution[1],args.resolution[0]], interpolation=transforms.InterpolationMode.BILINEAR)
-    train_crop = transforms.CenterCrop(args.resolution) if args.center_crop else transforms.RandomCrop(args.resolution)
+    train_crop = transforms.CenterCrop([args.resolution[1], args.resolution[0]]) if args.center_crop else transforms.RandomCrop([args.resolution[1], args.resolution[0]])
     train_flip = transforms.RandomHorizontalFlip(p=1.0)
     train_transforms = transforms.Compose(
         [
@@ -882,8 +897,8 @@ def main(args):
                 # flip
                 image = train_flip(image)
             if args.center_crop:
-                y1 = max(0, int(round((image.height - args.resolution[0]) / 2.0)))
-                x1 = max(0, int(round((image.width - args.resolution[1]) / 2.0)))
+                y1 = max(0, int(round((image.height - args.resolution[1]) / 2.0)))
+                x1 = max(0, int(round((image.width - args.resolution[0]) / 2.0)))
                 image = train_crop(image)
             else:
                 y1, x1, h, w = train_crop.get_params(image, (args.resolution[1], args.resolution[0]))
@@ -1215,7 +1230,8 @@ def main(args):
         else:
             text_encoder_lora_layers = None
             text_encoder_2_lora_layers = None
-            StableDiffusionXLPipeline.save_lora_weights(
+
+        StableDiffusionXLPipeline.save_lora_weights(
             save_directory=args.output_dir,
             unet_lora_layers=unet_lora_state_dict,
             text_encoder_lora_layers=text_encoder_lora_layers,

@@ -34,7 +34,7 @@ The `run_lora_train.sh` script configures the training process. Below are the ke
 - `--resolution`: Image resolution for training. Specified as `width height` (e.g., `1280 720`).
 - `--learning_rate`: Initial learning rate (e.g., `5e-5`).
 - `--train_batch_size`: Batch size per device (e.g., `4`).
-- `--rank`: The dimension of the LoRA update matrices (e.g., `32`). Higher rank means more trainable parameters but higher memory usage.
+- `--rank`: The dimension of the LoRA update matrices (e.g., `64`, as configured in `run_lora_train.sh`). Higher rank means more trainable parameters but higher memory usage.
 
 **Optimization & Memory:**
 - `--mixed_precision`: use `"fp16"` or `"bf16"` to save memory and speed up training.
@@ -92,6 +92,8 @@ resolution:
   height: 720
 
 num_generations: 5
+num_images_per_prompt: 4   # images generated per pipe() call (batch size)
+num_inference_steps: 50
 guidance_scale: 7.5 # This parameter decides how strong the prompt influences the image generation process 
 ```
 
